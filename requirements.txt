@@ -5,14 +5,14 @@ numba
 pytorch-lightning
 ffmpeg-python
 onnxruntime; sys_platform == 'darwin'
-onnxruntime-gpu; sys_platform != 'darwin'
+# onnxruntime-gpu; sys_platform != 'darwin'
 tqdm
-funasr==1.0.27
+funasr
 cn2an
 pypinyin
 pyopenjtalk
 g2p_en
-modelscope==1.10.0
+modelscope
 sentencepiece
 transformers
 chardet
