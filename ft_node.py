@@ -526,6 +526,136 @@ class ExperienceNode:
         }
         return (res,)
 
+gpu_mem = int(torch.cuda.get_device_properties(0).total_memory/ 1024/ 1024/ 1024+ 0.4)
+default_batch_size = gpu_mem // 2
+class ConfigSoVITSNode:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "batch_size": ("INT",{
+                    "min": 1,
+                    "max":40,
+                    "step":1,
+                    "display":"slider",
+                    "default": default_batch_size
+                }),
+                "total_epoch": ("INT",{
+                    "min": 1,
+                    "max":25,
+                    "step":1,
+                    "display":"slider",
+                    "default": 8
+                }),
+                "text_low_lr_rate": ("FLOAT",{
+                    "min": 0.2,
+                    "max":0.6,
+                    "step":0.05,
+                    "rond": 0.001,
+                    "display":"slider",
+                    "default": 0.4
+                }),
+                "save_every_epoch": ("INT",{
+                    "min": 1,
+                    "max":25,
+                    "step":1,
+                    "display":"slider",
+                    "default": 4
+                }),
+                "if_save_latest":("BOOLEAN",{
+                    "default": True
+                }),
+                "if_save_every_weights":("BOOLEAN",{
+                    "default": True
+                }),
+            }
+        }
+    
+    RETURN_TYPES = ("CONFIG",)
+
+    FUNCTION = "set_param"
+
+    OUTPUT_NODE = False
+
+    CATEGORY = "AIFSH_GPT-Sovits"
+
+    def set_param(self,batch_size,total_epoch,text_low_lr_rate,
+                  save_every_epoch,if_save_latest,if_save_every_weights):
+        res = {
+            "batch_size": batch_size,
+            "total_epoch" : total_epoch,
+            "text_low_lr_rate": text_low_lr_rate,
+            "save_every_epoch": save_every_epoch,
+            "if_save_latest": if_save_latest,
+            "if_save_every_weights": if_save_every_weights
+        }
+        return (res, )
+
+class ConfigGPTNode:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "batch_size": ("INT",{
+                    "min": 1,
+                    "max":40,
+                    "step":1,
+                    "display":"slider",
+                    "default": default_batch_size
+                }),
+                "total_epoch": ("INT",{
+                    "min": 1,
+                    "max":50,
+                    "step":1,
+                    "display":"slider",
+                    "default": 15
+                }),
+                "if_dpo":("BOOLEAN",{
+                    "default": False
+                }),
+                "save_every_epoch": ("INT",{
+                    "min": 1,
+                    "max":50,
+                    "step":1,
+                    "display":"slider",
+                    "default": 5
+                }),
+                "if_save_latest":("BOOLEAN",{
+                    "default": True
+                }),
+                "if_save_every_weights":("BOOLEAN",{
+                    "default": True
+                }),
+            }
+        }
+    
+    RETURN_TYPES = ("CONFIG",)
+
+    FUNCTION = "set_param"
+
+    OUTPUT_NODE = False
+
+    CATEGORY = "AIFSH_GPT-Sovits"
+
+    def set_param(self,batch_size,total_epoch,if_dpo,
+                  save_every_epoch,if_save_latest,if_save_every_weights):
+        res = {
+            "batch_size": batch_size,
+            "total_epoch" : total_epoch,
+            "if_dpo": if_dpo,
+            "save_every_epoch": save_every_epoch,
+            "if_save_latest": if_save_latest,
+            "if_save_every_weights": if_save_every_weights
+        }
+        return (res, )
+
+import json
+import yaml
+n_gpu = torch.cuda.device_count()
+gpu_numbers = "-".join([str(i) for i in range(n_gpu)])
+SoVITS_weight_root=["SoVITS_weights_v2","SoVITS_weights"]
+GPT_weight_root=["GPT_weights_v2","GPT_weights"]
+
 class GSFinetuneNone:
 
     @classmethod
@@ -533,6 +663,103 @@ class GSFinetuneNone:
         return {
             "required": {
                 "config": ("CONFIG",),
-                "dataset": ("DATASET",)
+                "dataset": ("DATASET",),
+                "sovits_config":("CONFIG",),
+                "gpt_config":("CONFIG",),
             }
         }
+    
+    RETURN_TYPES = ()
+
+    FUNCTION = "finetune"
+
+    OUTPUT_NODE = True
+
+    CATEGORY = "AIFSH_GPT-Sovits"
+
+    def s2_train(self,config,sovits_config):
+        with open(os.path.join(gsv_path,"configs","s2.json"))as f:
+            data=f.read()
+            data=json.loads(data)
+        s2_dir="%s/%s"%(work_path,config['exp_name'])
+        os.makedirs("%s/logs_s2"%(s2_dir),exist_ok=True)
+        
+        if(config['is_half']==False):
+            data["train"]["fp16_run"]=False
+            batch_size=max(1,sovits_config['batch_size']//2)
+        else:
+            batch_size = sovits_config['batch_size']
+        
+        data["train"]["batch_size"]=batch_size
+        data["train"]["epochs"]=sovits_config['total_epoch']
+        data["train"]["text_low_lr_rate"]=sovits_config['text_low_lr_rate']
+        data["train"]["pretrained_s2G"]=pretrained_sovits_name[-int(config['version'][-1])+2]
+        data["train"]["pretrained_s2D"]=pretrained_sovits_name[-int(config['version'][-1])+2].replace("s2G","s2D")
+        data["train"]["if_save_latest"]=sovits_config['if_save_latest']
+        data["train"]["if_save_every_weights"]=sovits_config['if_save_every_weights']
+        data["train"]["save_every_epoch"]=sovits_config['save_every_epoch']
+        data["train"]["gpu_numbers"]=gpu_numbers
+        data["model"]["version"]=config['version']
+        data["data"]["exp_dir"]=data["s2_ckpt_dir"]=s2_dir
+        data["save_weight_dir"]=os.path.join(work_path,SoVITS_weight_root[-int(config['version'][-1])+2])
+        os.makedirs(data['save_weight_dir'], exist_ok=True)
+        data["name"]=config['exp_name']
+        data["version"]=config['version']
+        tmp_config_path="%s/tmp_s2.json"%s2_dir
+        with open(tmp_config_path,"w")as f:f.write(json.dumps(data))
+
+        py_path = os.path.join(gsv_path,"s2_train.py")
+        cmd = f"""{python_exe} {py_path} --config {tmp_config_path}"""
+        print(cmd)
+        os.system(cmd)
+
+
+    def s1_train(self,config,gpt_config):
+        config_path = os.path.join(gsv_path,"configs","s1longer.yaml" if config['version']=="v1" else "s1longer-v2.yaml")
+        with open(config_path)as f:
+            data=f.read()
+            data=yaml.load(data, Loader=yaml.FullLoader)
+        s1_dir="%s/%s"%(work_path,config['exp_name'])
+        os.makedirs("%s/logs_s1"%(s1_dir),exist_ok=True)
+       
+        if(config['is_half']==False):
+            data["train"]["precision"]="32"
+            batch_size = max(1, gpt_config['batch_size'] // 2)
+        else:
+            batch_size = gpt_config['batch_size']
+        data["train"]["batch_size"]=batch_size
+        data["train"]["epochs"]=gpt_config['total_epoch']
+        data["pretrained_s1"]=pretrained_gpt_name[-int(config['version'][-1])+2]
+        data["train"]["save_every_n_epoch"]=gpt_config['save_every_epoch']
+        data["train"]["if_save_every_weights"]=gpt_config['if_save_every_weights']
+        data["train"]["if_save_latest"]=gpt_config['if_save_latest']
+        data["train"]["if_dpo"]=gpt_config['if_dpo']
+        data["train"]["half_weights_save_dir"]=os.path.join(work_path,GPT_weight_root[-int(config['version'][-1])+2])
+        os.makedirs(data["train"]['half_weights_save_dir'], exist_ok=True)
+        data["train"]["exp_name"]=config['exp_name']
+        data["train_semantic_path"]="%s/6-name2semantic.tsv"%s1_dir
+        data["train_phoneme_path"]="%s/2-name2text.txt"%s1_dir
+        data["output_dir"]="%s/logs_s1"%s1_dir
+        # data["version"]=version
+
+        os.environ["_CUDA_VISIBLE_DEVICES"]=gpu_numbers.replace("-",",")
+        os.environ["hz"]="25hz"
+        tmp_config_path="%s/tmp_s1.yaml"%s1_dir
+        with open(tmp_config_path, "w") as f:f.write(yaml.dump(data, default_flow_style=False))
+        # cmd = '"%s" GPT_SoVITS/s1_train.py --config_file "%s" --train_semantic_path "%s/6-name2semantic.tsv" --train_phoneme_path "%s/2-name2text.txt" --output_dir "%s/logs_s1"'%(python_exec,tmp_config_path,s1_dir,s1_dir,s1_dir)
+        py_path = os.path.join(gsv_path,"s1_train.py")
+        cmd = f"""{python_exe} {py_path} --config_file {tmp_config_path}"""
+        print(cmd)
+        os.system(cmd)
+
+    def finetune(self,config,dataset,sovits_config,gpt_config):
+        print("SoVITS训练开始：")
+        self.s2_train(config,sovits_config)
+        print("SoVITS训练完成")
+
+        print("GPT训练开始")
+        self.s1_train(config, gpt_config)
+        print("GPT训练完成")
+        return ()
+
+        

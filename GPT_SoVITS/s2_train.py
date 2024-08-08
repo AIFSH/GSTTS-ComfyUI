@@ -1,6 +1,12 @@
 import warnings
 warnings.filterwarnings("ignore")
-import utils, os
+import os,sys
+now_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(now_dir)
+sys.path.append(parent_dir)
+sys.path.append(now_dir)
+
+import utils
 hps = utils.get_hparams(stage=2)
 os.environ["CUDA_VISIBLE_DEVICES"] = hps.train.gpu_numbers.replace("-", ",")
 import torch

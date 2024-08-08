@@ -1,6 +1,9 @@
 # modified from https://github.com/feng-yufei/shared_debugging_code/blob/main/train_t2s.py
 import os
 import pdb
+import os,sys
+now_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(now_dir)
 
 if "_CUDA_VISIBLE_DEVICES" in os.environ:
     os.environ["CUDA_VISIBLE_DEVICES"] = os.environ["_CUDA_VISIBLE_DEVICES"]
