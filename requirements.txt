@@ -1,0 +1,32 @@
+scipy
+tensorboard
+librosa
+numba
+pytorch-lightning
+ffmpeg-python
+onnxruntime; sys_platform == 'darwin'
+onnxruntime-gpu; sys_platform != 'darwin'
+tqdm
+funasr==1.0.27
+cn2an
+pypinyin
+pyopenjtalk
+g2p_en
+modelscope==1.10.0
+sentencepiece
+transformers
+chardet
+PyYAML
+psutil
+jieba_fast
+jieba
+LangSegment>=0.2.0
+Faster_Whisper
+wordsegment
+rotary_embedding_torch
+pyjyutping 
+g2pk2
+ko_pron
+opencc; sys_platform != 'linux'
+opencc==1.1.1; sys_platform == 'linux'
+python_mecab_ko; sys_platform != 'win32'
