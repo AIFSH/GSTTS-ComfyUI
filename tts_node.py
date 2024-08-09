@@ -580,7 +580,7 @@ class TextDictNode:
         return (res, )
 
 
-prompt_sr = 16000
+prompt_sr = 32000
 import torchaudio
 from feature_extractor import cnhubert
 from transformers import AutoModelForMaskedLM, AutoTokenizer
