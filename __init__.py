@@ -1,5 +1,6 @@
 import os,sys
 
+from .tts_node import TextDictNode, GSVTTSNode
 from .ft_node import AudioSlicerNode,ASRNode,DatasetNode,\
       ExperienceNode,GSFinetuneNone, ConfigSoVITSNode,ConfigGPTNode
 NODE_CLASS_MAPPINGS = {
@@ -9,5 +10,7 @@ NODE_CLASS_MAPPINGS = {
     "AudioSlicerNode": AudioSlicerNode,
     "GSFinetuneNone": GSFinetuneNone,
     "ConfigSoVITSNode":ConfigSoVITSNode,
-    "ConfigGPTNode": ConfigGPTNode
+    "ConfigGPTNode": ConfigGPTNode,
+    "TextDictNode": TextDictNode,
+    "GSVTTSNode": GSVTTSNode
 }

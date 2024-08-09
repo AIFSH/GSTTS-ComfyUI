@@ -1,0 +1,438 @@
+{
+  "last_node_id": 12,
+  "last_link_id": 17,
+  "nodes": [
+    {
+      "id": 2,
+      "type": "ASRNode",
+      "pos": [
+        263,
+        70
+      ],
+      "size": {
+        "0": 315,
+        "1": 126
+      },
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "slicer_dir",
+          "type": "DIR",
+          "link": 6
+        },
+        {
+          "name": "config",
+          "type": "CONFIG",
+          "link": 4
+        }
+      ],
+      "outputs": [
+        {
+          "name": "FILE",
+          "type": "FILE",
+          "links": [
+            1
+          ],
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ASRNode"
+      },
+      "widgets_values": [
+        "large-v3",
+        "auto",
+        "float16"
+      ]
+    },
+    {
+      "id": 5,
+      "type": "LoadAudio",
+      "pos": [
+        52,
+        422
+      ],
+      "size": {
+        "0": 315,
+        "1": 124
+      },
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "AUDIO",
+          "type": "AUDIO",
+          "links": [
+            7
+          ],
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadAudio"
+      },
+      "widgets_values": [
+        "demo.MP3",
+        null,
+        ""
+      ]
+    },
+    {
+      "id": 3,
+      "type": "AudioSlicerNode",
+      "pos": [
+        458,
+        321
+      ],
+      "size": {
+        "0": 315,
+        "1": 222
+      },
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 7,
+          "slot_index": 0
+        },
+        {
+          "name": "config",
+          "type": "CONFIG",
+          "link": 5
+        }
+      ],
+      "outputs": [
+        {
+          "name": "DIR",
+          "type": "DIR",
+          "links": [
+            2,
+            6
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "AudioSlicerNode"
+      },
+      "widgets_values": [
+        -34,
+        4000,
+        300,
+        10,
+        500,
+        0.9,
+        0.25
+      ]
+    },
+    {
+      "id": 1,
+      "type": "DatasetNode",
+      "pos": [
+        710,
+        131
+      ],
+      "size": {
+        "0": 241.79998779296875,
+        "1": 66
+      },
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "inp_text",
+          "type": "FILE",
+          "link": 1,
+          "slot_index": 0
+        },
+        {
+          "name": "inp_wav_dir",
+          "type": "DIR",
+          "link": 2,
+          "slot_index": 1
+        },
+        {
+          "name": "config",
+          "type": "CONFIG",
+          "link": 3,
+          "slot_index": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "DATASET",
+          "type": "DATASET",
+          "links": [
+            8
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "DatasetNode"
+      }
+    },
+    {
+      "id": 4,
+      "type": "ExperienceNode",
+      "pos": [
+        90,
+        254
+      ],
+      "size": {
+        "0": 315,
+        "1": 106
+      },
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "CONFIG",
+          "type": "CONFIG",
+          "links": [
+            3,
+            4,
+            5,
+            13
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ExperienceNode"
+      },
+      "widgets_values": [
+        "aifsh",
+        "v2",
+        true
+      ]
+    },
+    {
+      "id": 11,
+      "type": "ConfigSoVITSNode",
+      "pos": [
+        987,
+        112
+      ],
+      "size": {
+        "0": 315,
+        "1": 178
+      },
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "CONFIG",
+          "type": "CONFIG",
+          "links": [
+            16
+          ],
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ConfigSoVITSNode"
+      },
+      "widgets_values": [
+        5,
+        8,
+        0.4,
+        4,
+        true,
+        true
+      ]
+    },
+    {
+      "id": 6,
+      "type": "GSFinetuneNone",
+      "pos": [
+        915,
+        349
+      ],
+      "size": {
+        "0": 210,
+        "1": 86
+      },
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "config",
+          "type": "CONFIG",
+          "link": 13
+        },
+        {
+          "name": "dataset",
+          "type": "DATASET",
+          "link": 8
+        },
+        {
+          "name": "sovits_config",
+          "type": "CONFIG",
+          "link": 16,
+          "slot_index": 2
+        },
+        {
+          "name": "gpt_config",
+          "type": "CONFIG",
+          "link": 17,
+          "slot_index": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "GSFinetuneNone"
+      }
+    },
+    {
+      "id": 12,
+      "type": "ConfigGPTNode",
+      "pos": [
+        902,
+        505
+      ],
+      "size": {
+        "0": 315,
+        "1": 178
+      },
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "CONFIG",
+          "type": "CONFIG",
+          "links": [
+            17
+          ],
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ConfigGPTNode"
+      },
+      "widgets_values": [
+        5,
+        15,
+        false,
+        5,
+        true,
+        true
+      ]
+    }
+  ],
+  "links": [
+    [
+      1,
+      2,
+      0,
+      1,
+      0,
+      "FILE"
+    ],
+    [
+      2,
+      3,
+      0,
+      1,
+      1,
+      "DIR"
+    ],
+    [
+      3,
+      4,
+      0,
+      1,
+      2,
+      "CONFIG"
+    ],
+    [
+      4,
+      4,
+      0,
+      2,
+      1,
+      "CONFIG"
+    ],
+    [
+      5,
+      4,
+      0,
+      3,
+      1,
+      "CONFIG"
+    ],
+    [
+      6,
+      3,
+      0,
+      2,
+      0,
+      "DIR"
+    ],
+    [
+      7,
+      5,
+      0,
+      3,
+      0,
+      "AUDIO"
+    ],
+    [
+      8,
+      1,
+      0,
+      6,
+      1,
+      "DATASET"
+    ],
+    [
+      13,
+      4,
+      0,
+      6,
+      0,
+      "CONFIG"
+    ],
+    [
+      16,
+      11,
+      0,
+      6,
+      2,
+      "CONFIG"
+    ],
+    [
+      17,
+      12,
+      0,
+      6,
+      3,
+      "CONFIG"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 1,
+      "offset": [
+        4,
+        -4.79998779296875
+      ]
+    }
+  },
+  "version": 0.4
+}

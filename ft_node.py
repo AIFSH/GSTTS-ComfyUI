@@ -20,8 +20,8 @@ from faster_whisper import WhisperModel
 from huggingface_hub import snapshot_download
 from transformers import AutoModelForMaskedLM, AutoTokenizer
 
-pretrained_sovits_name=[os.path.join(models_dir,"gsv-v2final-pretrained","s2G2333k.pth"), os.path.join(models_dir,"s2G488k.pth")]
-pretrained_gpt_name=[os.path.join(models_dir,"gsv-v2final-pretrained","s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt"), os.path.join(models_dir,"s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt")]
+pretrained_sovits_name=["gsv-v2final-pretrained/s2G2333k.pth", "s2G488k.pth"]
+pretrained_gpt_name=["gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt","s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt"]
 
 class AudioSlicerNode:
 
@@ -63,7 +63,7 @@ class AudioSlicerNode:
 
     OUTPUT_NODE = False
 
-    CATEGORY = "AIFSH_GPT-Sovits"
+    CATEGORY = "AIFSH_GPT-SoVITS"
 
     def slicer(self,audio,config,threshold,min_length,min_interval,
                hop_size,max_sil_kept,normalize_max,alpha_mix):
@@ -129,7 +129,7 @@ class ASRNode:
 
     OUTPUT_NODE = False
 
-    CATEGORY = "AIFSH_GPT-Sovits"
+    CATEGORY = "AIFSH_GPT-SoVITS"
 
     def asr(self,slicer_dir,config, model_size,language,precision):
         output_folder = os.path.join(work_path,config["exp_name"])
@@ -212,7 +212,7 @@ class DatasetNode:
 
     OUTPUT_NODE = True
 
-    CATEGORY = "AIFSH_GPT-Sovits"
+    CATEGORY = "AIFSH_GPT-SoVITS"
 
     def get_text(self,inp_text,inp_wav_dir,version,is_half):
         path_text="%s/2-name2text.txt" % self.opt_dir
@@ -489,7 +489,7 @@ class DatasetNode:
         self.get_hubert(inp_text,inp_wav_dir,config["is_half"])
         print("进度：1b-done")
         print("进度：1a1b-done, 1cing")
-        self.pretrained_s2G = pretrained_sovits_name[-int(config["version"][-1])+2]
+        self.pretrained_s2G = os.path.join(models_dir,pretrained_sovits_name[-int(config["version"][-1])+2])
         self.get_semantic(inp_text,config["version"],config["is_half"])
         print("进度：all-done")
         return (True,)
@@ -515,7 +515,7 @@ class ExperienceNode:
 
     OUTPUT_NODE = False
 
-    CATEGORY = "AIFSH_GPT-Sovits"
+    CATEGORY = "AIFSH_GPT-SoVITS"
 
     def set_param(self,exp_name,version,is_half):
         shutil.rmtree(os.path.join(work_path,exp_name),ignore_errors=True)
@@ -577,7 +577,7 @@ class ConfigSoVITSNode:
 
     OUTPUT_NODE = False
 
-    CATEGORY = "AIFSH_GPT-Sovits"
+    CATEGORY = "AIFSH_GPT-SoVITS"
 
     def set_param(self,batch_size,total_epoch,text_low_lr_rate,
                   save_every_epoch,if_save_latest,if_save_every_weights):
@@ -635,7 +635,7 @@ class ConfigGPTNode:
 
     OUTPUT_NODE = False
 
-    CATEGORY = "AIFSH_GPT-Sovits"
+    CATEGORY = "AIFSH_GPT-SoVITS"
 
     def set_param(self,batch_size,total_epoch,if_dpo,
                   save_every_epoch,if_save_latest,if_save_every_weights):
@@ -675,7 +675,7 @@ class GSFinetuneNone:
 
     OUTPUT_NODE = True
 
-    CATEGORY = "AIFSH_GPT-Sovits"
+    CATEGORY = "AIFSH_GPT-SoVITS"
 
     def s2_train(self,config,sovits_config):
         with open(os.path.join(gsv_path,"configs","s2.json"))as f:
@@ -693,8 +693,8 @@ class GSFinetuneNone:
         data["train"]["batch_size"]=batch_size
         data["train"]["epochs"]=sovits_config['total_epoch']
         data["train"]["text_low_lr_rate"]=sovits_config['text_low_lr_rate']
-        data["train"]["pretrained_s2G"]=pretrained_sovits_name[-int(config['version'][-1])+2]
-        data["train"]["pretrained_s2D"]=pretrained_sovits_name[-int(config['version'][-1])+2].replace("s2G","s2D")
+        data["train"]["pretrained_s2G"]=os.path.join(models_dir,pretrained_sovits_name[-int(config['version'][-1])+2])
+        data["train"]["pretrained_s2D"]=os.path.join(models_dir,pretrained_sovits_name[-int(config['version'][-1])+2].replace("s2G","s2D"))
         data["train"]["if_save_latest"]=sovits_config['if_save_latest']
         data["train"]["if_save_every_weights"]=sovits_config['if_save_every_weights']
         data["train"]["save_every_epoch"]=sovits_config['save_every_epoch']
@@ -729,7 +729,7 @@ class GSFinetuneNone:
             batch_size = gpt_config['batch_size']
         data["train"]["batch_size"]=batch_size
         data["train"]["epochs"]=gpt_config['total_epoch']
-        data["pretrained_s1"]=pretrained_gpt_name[-int(config['version'][-1])+2]
+        data["pretrained_s1"]=os.path.join(models_dir,pretrained_gpt_name[-int(config['version'][-1])+2])
         data["train"]["save_every_n_epoch"]=gpt_config['save_every_epoch']
         data["train"]["if_save_every_weights"]=gpt_config['if_save_every_weights']
         data["train"]["if_save_latest"]=gpt_config['if_save_latest']

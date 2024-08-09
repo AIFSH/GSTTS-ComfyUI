@@ -1,0 +1,282 @@
+{
+  "last_node_id": 8,
+  "last_link_id": 11,
+  "nodes": [
+    {
+      "id": 3,
+      "type": "TextDictNode",
+      "pos": [
+        112,
+        370
+      ],
+      "size": {
+        "0": 400,
+        "1": 200
+      },
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "TEXTDICT",
+          "type": "TEXTDICT",
+          "links": [
+            9
+          ],
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "TextDictNode"
+      },
+      "widgets_values": [
+        "",
+        "中文"
+      ]
+    },
+    {
+      "id": 6,
+      "type": "ExperienceNode",
+      "pos": [
+        950,
+        513
+      ],
+      "size": {
+        "0": 315,
+        "1": 106
+      },
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "CONFIG",
+          "type": "CONFIG",
+          "links": [
+            11
+          ],
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ExperienceNode"
+      },
+      "widgets_values": [
+        "aifsh",
+        "v2",
+        true
+      ]
+    },
+    {
+      "id": 8,
+      "type": "GSVTTSNode",
+      "pos": [
+        674,
+        116
+      ],
+      "size": {
+        "0": 315,
+        "1": 262
+      },
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "text_dict",
+          "type": "TEXTDICT",
+          "link": 8,
+          "slot_index": 0
+        },
+        {
+          "name": "prompt_text_dict",
+          "type": "TEXTDICT",
+          "link": 9,
+          "slot_index": 1
+        },
+        {
+          "name": "prompt_audio",
+          "type": "AUDIO",
+          "link": 10,
+          "slot_index": 2
+        },
+        {
+          "name": "config",
+          "type": "CONFIG",
+          "link": 11,
+          "slot_index": 3
+        }
+      ],
+      "outputs": [
+        {
+          "name": "AUDIO",
+          "type": "AUDIO",
+          "links": [
+            7
+          ],
+          "shape": 3,
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "GSVTTSNode"
+      },
+      "widgets_values": [
+        "gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt",
+        "gsv-v2final-pretrained/s2G2333k.pth",
+        "凑四句一切",
+        1,
+        15,
+        1,
+        1
+      ]
+    },
+    {
+      "id": 4,
+      "type": "LoadAudio",
+      "pos": [
+        565,
+        517
+      ],
+      "size": {
+        "0": 315,
+        "1": 124
+      },
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "AUDIO",
+          "type": "AUDIO",
+          "links": [
+            10
+          ],
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadAudio"
+      },
+      "widgets_values": [
+        "demo.MP3",
+        null,
+        ""
+      ]
+    },
+    {
+      "id": 2,
+      "type": "TextDictNode",
+      "pos": [
+        108,
+        86
+      ],
+      "size": {
+        "0": 400,
+        "1": 200
+      },
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "TEXTDICT",
+          "type": "TEXTDICT",
+          "links": [
+            8
+          ],
+          "shape": 3
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "TextDictNode"
+      },
+      "widgets_values": [
+        "我是ai浮世绘，测试一下，好不呢！",
+        "粤语"
+      ]
+    },
+    {
+      "id": 7,
+      "type": "PreviewAudio",
+      "pos": [
+        1091,
+        101
+      ],
+      "size": {
+        "0": 315,
+        "1": 76
+      },
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 7
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PreviewAudio"
+      },
+      "widgets_values": [
+        null
+      ]
+    }
+  ],
+  "links": [
+    [
+      7,
+      8,
+      0,
+      7,
+      0,
+      "AUDIO"
+    ],
+    [
+      8,
+      2,
+      0,
+      8,
+      0,
+      "TEXTDICT"
+    ],
+    [
+      9,
+      3,
+      0,
+      8,
+      1,
+      "TEXTDICT"
+    ],
+    [
+      10,
+      4,
+      0,
+      8,
+      2,
+      "AUDIO"
+    ],
+    [
+      11,
+      6,
+      0,
+      8,
+      3,
+      "CONFIG"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 1,
+      "offset": [
+        0,
+        -0.79998779296875
+      ]
+    }
+  },
+  "version": 0.4
+}
