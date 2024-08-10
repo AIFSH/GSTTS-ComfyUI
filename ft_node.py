@@ -19,7 +19,7 @@ from tools.slicer2 import Slicer
 from faster_whisper import WhisperModel
 from huggingface_hub import snapshot_download
 from transformers import AutoModelForMaskedLM, AutoTokenizer
-
+snapshot_download(repo_id="lj1995/GPT-SoVITS",local_dir=models_dir)
 pretrained_sovits_name=["gsv-v2final-pretrained/s2G2333k.pth", "s2G488k.pth"]
 pretrained_gpt_name=["gsv-v2final-pretrained/s1bert25hz-5kh-longer-epoch=12-step=369668.ckpt","s1bert25hz-2kh-longer-epoch=68e-step=50232.ckpt"]
 
@@ -477,7 +477,7 @@ class DatasetNode:
 
 
     def gen_dataset(self,inp_text,inp_wav_dir,config):
-        snapshot_download(repo_id="lj1995/GPT-SoVITS",local_dir=models_dir)
+        # snapshot_download(repo_id="lj1995/GPT-SoVITS",local_dir=models_dir)
         self.opt_dir = os.path.join(work_path,config["exp_name"])
         self.bert_pretrained_dir = os.path.join(models_dir,"chinese-roberta-wwm-ext-large")
         print("进度：1a-ing")
