@@ -1,4 +1,5 @@
 pandas
+matplotlib
 scipy
 tensorboard
 librosa
