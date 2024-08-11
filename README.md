@@ -25,6 +25,7 @@ or if you still struggle with huggingface, you may try follow [hf-mirror](https:
 
 ## Tutorial
 - [Run Online](https://www.xiangongyun.com/image/detail/13706bf7-f3e6-4e29-bb97-c79405f5def4)
+- [GPT-SoVITS V2的ComfyUI插件来啦！ | ComfyUI数字人之音色克隆篇-哔哩哔哩］(https://b23.tv/mhskKcZ）
 
 ## Thanks
 - [GPT-SoVITS](https://github.com/RVC-Boss/GPT-SoVITS)
