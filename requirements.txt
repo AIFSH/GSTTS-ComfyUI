@@ -1,3 +1,4 @@
+pandas
 scipy
 tensorboard
 librosa
