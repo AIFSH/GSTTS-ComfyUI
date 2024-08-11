@@ -68,6 +68,7 @@ class AudioSlicerNode:
     def slicer(self,audio,config,threshold,min_length,min_interval,
                hop_size,max_sil_kept,normalize_max,alpha_mix):
         slicer_dir = os.path.join(work_path,config["exp_name"],"slicer_audio")
+        if not config["if_redataset"]: return (slicer_dir,)
         shutil.rmtree(slicer_dir,ignore_errors=True)
         os.makedirs(slicer_dir,exist_ok=True)
         prompt_sr = 32000
@@ -133,6 +134,7 @@ class ASRNode:
 
     def asr(self,slicer_dir,config, model_size,language,precision):
         output_folder = os.path.join(work_path,config["exp_name"])
+        if not config["if_redataset"]: return (os.path.join(output_dir,"slicer_audio.list"),)
         os.makedirs(output_folder,exist_ok=True)
         model_path = os.path.join(models_dir,f"faster-whisper-{model_size}")
         snapshot_download(repo_id=f"Systran/faster-whisper-{model_size}",local_dir=model_path)
@@ -478,6 +480,8 @@ class DatasetNode:
 
     def gen_dataset(self,inp_text,inp_wav_dir,config):
         # snapshot_download(repo_id="lj1995/GPT-SoVITS",local_dir=models_dir)
+        if not config["if_redataset"]: return (True,)
+        shutil.rmtree(os.path.join(work_path,exp_name),ignore_errors=True)
         self.opt_dir = os.path.join(work_path,config["exp_name"])
         self.bert_pretrained_dir = os.path.join(models_dir,"chinese-roberta-wwm-ext-large")
         print("进度：1a-ing")
@@ -505,7 +509,16 @@ class ExperienceNode:
                 "version":(["v2","v1"],),
                 "is_half":("BOOLEAN",{
                     "default": True,
-                })
+                }),
+                "if_redataset":("BOOLEAN",{
+                    "default": True,
+                }),
+                "if_ft_sovits":("BOOLEAN",{
+                    "default": True
+                }),
+                "if_ft_gpt":("BOOLEAN",{
+                    "default": True
+                }),
             }
         }
     
@@ -517,12 +530,15 @@ class ExperienceNode:
 
     CATEGORY = "AIFSH_GPT-SoVITS"
 
-    def set_param(self,exp_name,version,is_half):
-        shutil.rmtree(os.path.join(work_path,exp_name),ignore_errors=True)
+    def set_param(self,exp_name,version,is_half,if_redataset,if_ft_sovits,if_ft_gpt):
+        
         res = {
             "exp_name":exp_name,
             "version": version,
             "is_half":is_half,
+            "if_redataset":if_redataset,
+            "if_ft_sovits":if_ft_sovits,
+            "if_ft_gpt": if_ft_gpt
         }
         return (res,)
 
@@ -601,7 +617,7 @@ class ConfigGPTNode:
                     "max":40,
                     "step":1,
                     "display":"slider",
-                    "default": default_batch_size
+                    "default": default_batch_size // 2
                 }),
                 "total_epoch": ("INT",{
                     "min": 1,
@@ -753,13 +769,15 @@ class GSFinetuneNone:
         os.system(cmd)
 
     def finetune(self,config,dataset,sovits_config,gpt_config):
-        print("SoVITS训练开始：")
-        self.s2_train(config,sovits_config)
-        print("SoVITS训练完成")
+        if config["if_ft_sovits"]:
+            print("SoVITS训练开始：")
+            self.s2_train(config,sovits_config)
+            print("SoVITS训练完成")
 
-        print("GPT训练开始")
-        self.s1_train(config, gpt_config)
-        print("GPT训练完成")
+        if config["if_ft_gpt"]:
+            print("GPT训练开始")
+            self.s1_train(config, gpt_config)
+            print("GPT训练完成")
         return ()
 
         
