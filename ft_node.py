@@ -481,7 +481,7 @@ class DatasetNode:
     def gen_dataset(self,inp_text,inp_wav_dir,config):
         # snapshot_download(repo_id="lj1995/GPT-SoVITS",local_dir=models_dir)
         if not config["if_redataset"]: return (True,)
-        shutil.rmtree(os.path.join(work_path,exp_name),ignore_errors=True)
+        shutil.rmtree(os.path.join(work_path,config["exp_name"]),ignore_errors=True)
         self.opt_dir = os.path.join(work_path,config["exp_name"])
         self.bert_pretrained_dir = os.path.join(models_dir,"chinese-roberta-wwm-ext-large")
         print("进度：1a-ing")
