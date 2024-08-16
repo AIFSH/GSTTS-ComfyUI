@@ -5,6 +5,9 @@ a comfyui custom node for [GPT-SoVITS](https://github.com/RVC-Boss/GPT-SoVITS), 
 We do not hold any responsibility for any illegal usage of the codebase. Please refer to your local laws about DMCA and other related laws.
 我们不对代码库的任何非法使用承担任何责任. 请参阅您当地关于 DMCA (数字千年法案) 和其他相关法律法规.
 
+## Windows一键包
+[下载链接，及时转存](https://pan.quark.cn/s/aaadcbf3181f)
+
 ## How to use
 make sure `ffmpeg` is worked in your commandline
 for Linux
@@ -25,7 +28,7 @@ or if you still struggle with huggingface, you may try follow [hf-mirror](https:
 
 ## Tutorial
 - [Run Online](https://www.xiangongyun.com/image/detail/13706bf7-f3e6-4e29-bb97-c79405f5def4)
-- [GPT-SoVITS V2的ComfyUI插件来啦！ | ComfyUI数字人之音色克隆篇-哔哩哔哩］(https://b23.tv/mhskKcZ）
+- [GPT-SoVITS V2的ComfyUI插件来啦！ | ComfyUI数字人之音色克隆篇-哔哩哔哩］(https://b23.tv/mhskKcZ)
 
 ## Thanks
 - [GPT-SoVITS](https://github.com/RVC-Boss/GPT-SoVITS)
