@@ -134,7 +134,10 @@ class ASRNode:
 
     def asr(self,slicer_dir,config, model_size,language,precision):
         output_folder = os.path.join(work_path,config["exp_name"])
-        if not config["if_redataset"]: return (os.path.join(output_dir,"slicer_audio.list"),)
+        output_file_name = os.path.basename(slicer_dir)
+        output_file_path = os.path.abspath(f'{output_folder}/{output_file_name}.list')
+        if not config["if_redataset"]: return (output_file_path,)
+        shutil.rmtree(output_file_path,ignore_errors=True)
         os.makedirs(output_folder,exist_ok=True)
         model_path = os.path.join(models_dir,f"faster-whisper-{model_size}")
         snapshot_download(repo_id=f"Systran/faster-whisper-{model_size}",local_dir=model_path)
@@ -150,10 +153,7 @@ class ASRNode:
         
         input_file_names = os.listdir(slicer_dir)
         input_file_names.sort()
-
         output = []
-        output_file_name = os.path.basename(slicer_dir)
-        
         for file_name in tqdm(input_file_names):
             try:
                 file_path = os.path.join(slicer_dir, file_name)
@@ -181,8 +181,7 @@ class ASRNode:
         
         output_folder = output_folder or "output/asr_opt"
         os.makedirs(output_folder, exist_ok=True)
-        output_file_path = os.path.abspath(f'{output_folder}/{output_file_name}.list')
-
+        
         with open(output_file_path, "w", encoding="utf-8") as f:
             f.write("\n".join(output))
             print(f"ASR 任务完成->标注文件路径: {output_file_path}\n")
@@ -481,7 +480,7 @@ class DatasetNode:
     def gen_dataset(self,inp_text,inp_wav_dir,config):
         # snapshot_download(repo_id="lj1995/GPT-SoVITS",local_dir=models_dir)
         if not config["if_redataset"]: return (True,)
-        shutil.rmtree(os.path.join(work_path,config["exp_name"]),ignore_errors=True)
+        # shutil.rmtree(os.path.join(work_path,config["exp_name"]),ignore_errors=True)
         self.opt_dir = os.path.join(work_path,config["exp_name"])
         self.bert_pretrained_dir = os.path.join(models_dir,"chinese-roberta-wwm-ext-large")
         print("进度：1a-ing")

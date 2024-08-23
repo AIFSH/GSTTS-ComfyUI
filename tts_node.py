@@ -696,3 +696,130 @@ class GSVTTSNode:
             "sample_rate": 32000,
         }
         return (res,)
+
+import traceback
+import translators as ts
+from tools.slicer2 import Slicer
+from faster_whisper import WhisperModel
+from huggingface_hub import snapshot_download
+class TSCY_Node:
+    def __init__(self):
+        self.ifload_model = True
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required":{
+                "language": (list(dict_language.keys()),),
+                "prompt_audio":("AUDIO",),
+            },
+            "optional":{
+                "srt": ("SRT",),
+            }
+        }
+    RETURN_TYPES = ("AUDIO",)
+    FUNCTION = "tts"
+
+    CATEGORY = "AIFSH_GPT-SoVITS"
+
+    def tts(self,language,prompt_audio,srt=None):
+        global ssl_model,is_half,tokenizer,bert_model
+
+        waveform = prompt_audio['waveform'].squeeze(0)
+        source_sr = prompt_audio['sample_rate']
+        speech = waveform.mean(dim=0,keepdim=True)
+        if source_sr != prompt_sr:
+            speech = torchaudio.transforms.Resample(orig_freq=source_sr, new_freq=prompt_sr)(speech)
+        
+        if self.ifload_model:
+            is_half = True
+            cnhubert.cnhubert_base_path = os.path.join(models_dir,"chinese-hubert-base")
+            ssl_model = cnhubert.get_model()
+            if is_half == True:
+                ssl_model = ssl_model.half().to(device)
+            else:
+                ssl_model = ssl_model.to(device)
+
+            
+            bert_path = os.path.join(models_dir,"chinese-roberta-wwm-ext-large")
+
+            tokenizer = AutoTokenizer.from_pretrained(bert_path)
+            bert_model = AutoModelForMaskedLM.from_pretrained(bert_path)
+            if is_half == True:
+                bert_model = bert_model.half().to(device)
+            else:
+                bert_model = bert_model.to(device)
+            change_gpt_weights(os.path.join(models_dir,pretrained_gpt_name[0]))
+            change_sovits_weights(os.path.join(models_dir,pretrained_sovits_name[0]))
+            self.ifload_model = False
+        else:
+            print("use cache model")
+        if srt is None:
+            slicer = Slicer(
+                sr= prompt_sr,
+                threshold= -34,
+                min_length= 4000,
+                min_interval= 300,
+                hop_size= 10,
+                max_sil_kept= 500
+            )
+            model_path = os.path.join(models_dir,f"faster-whisper-large-v3")
+            snapshot_download(repo_id=f"Systran/faster-whisper-large-v3",local_dir=model_path)
+            try:
+                model = WhisperModel(model_path, device=device, compute_type="float16")
+            except:
+                return print(traceback.format_exc())
+
+            tts_audio = []
+            to_language = dict_language[language]
+            if "yue" in to_language or "auto" in to_language or "zh" in to_language:
+                to_language = "zh"
+            if "en" in to_language:
+                to_language = "en"
+            
+            if "ja" in to_language:
+                to_language = "ja"
+
+            if "ko" in to_language:
+                to_language = "ko"
+
+            for chunk, start, end in slicer.slice(speech.numpy()[0]):
+                tmp_max = np.abs(chunk).max()
+                if(tmp_max>1):chunk/=tmp_max
+                chunk = (chunk / tmp_max * (0.9 * 0.25)) + (1 - 0.25) * chunk
+
+                segments, info = model.transcribe(
+                    audio          = chunk,
+                    beam_size      = 5,
+                    vad_filter     = True,
+                    vad_parameters = dict(min_silence_duration_ms=700),
+                    language       = None)
+                i_prompt_text = ''
+                if i_prompt_text == '':
+                    for segment in segments:
+                        i_prompt_text += segment.text
+                i_prompt_audio = torch.from_numpy(chunk)
+
+                
+                i_tts_text = ts.translate_text(query_text=i_prompt_text,from_language=info.language,
+                                            to_language=to_language)
+                print(f"from {info.language} \t {i_prompt_text}")
+                print(f"to {to_language}\t{i_tts_text}")
+
+                i_tts_audio = get_tts_wav(i_prompt_audio,i_prompt_text,info.language,i_tts_text,language)
+                i_tts_audio = i_tts_audio.numpy()
+                tts_audio.append(i_tts_audio)
+            res_audio = torch.Tensor(np.concatenate(tts_audio, 0)).unsqueeze(0)
+
+        res = {
+            "waveform": res_audio.unsqueeze(0),
+            "sample_rate": prompt_sr,
+        }
+        return (res,)
+            
+
+
+                
+
+                
+                
