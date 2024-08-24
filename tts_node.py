@@ -743,9 +743,36 @@ class PreViewSRT:
         srt_name = os.path.basename(srt)
         dir_name = os.path.dirname(srt)
         dir_name = os.path.basename(dir_name)
-        with open(srt, 'r') as f:
+        with open(srt, 'r',encoding="utf-8") as f:
             srt_content = f.read()
         return {"ui": {"srt":[srt_content,srt_name,dir_name]}}
+
+import ffmpeg
+def speed_change(input_audio, speed, sr):
+    # 检查输入数据类型和声道数
+    if input_audio.dtype != np.int16:
+        raise ValueError("输入音频数据类型必须为 np.int16")
+
+
+    # 转换为字节流
+    raw_audio = input_audio.astype(np.int16).tobytes()
+
+    # 设置 ffmpeg 输入流
+    input_stream = ffmpeg.input('pipe:', format='s16le', acodec='pcm_s16le', ar=str(sr), ac=1)
+
+    # 变速处理
+    output_stream = input_stream.filter('atempo', speed)
+
+    # 输出流到管道
+    out, _ = (
+        output_stream.output('pipe:', format='s16le', acodec='pcm_s16le')
+        .run(input=raw_audio, capture_stdout=True, capture_stderr=True)
+    )
+
+    # 将管道输出解码为 NumPy 数组
+    processed_audio = np.frombuffer(out, np.int16)
+
+    return processed_audio
 
 class TSCY_Node:
     def __init__(self):
@@ -766,7 +793,10 @@ class TSCY_Node:
                             'translateCom', 'translateMe', 'utibet', 'volcEngine', 'yandex',
                             'yeekit', 'youdao'],{
                                 "default":"sogou"
-                            })
+                            }),
+                "if_algin":("BOOLEAN",{
+                    "default": True
+                })
             },
             "optional":{
                 "tts_srt": ("SRT",),
@@ -800,7 +830,7 @@ class TSCY_Node:
             lang = "zh"
         return lang
 
-    def tts(self,language,prompt_audio,translator,tts_srt=None):
+    def tts(self,language,prompt_audio,translator,if_algin,tts_srt=None):
         global ssl_model,is_half,tokenizer,bert_model
 
         waveform = prompt_audio['waveform'].squeeze(0)
@@ -876,22 +906,27 @@ class TSCY_Node:
                 i_tts_text = ts.translate_text(query_text=i_prompt_text,from_language=from_language,
                                             to_language=to_language,translator=translator)
             else:
-                with open(tts_srt,"r") as f:
+                with open(tts_srt,"r",encoding="utf-8") as f:
                     sub_str = f.read()
                 i_tts_text = list(srt.parse(sub_str))[i].content
 
             print(f"to {to_language}\t{i_tts_text}")
 
             i_sub = srt.Subtitle(index=i+1,start=datetime.timedelta(seconds=start/prompt_sr),
-                                    end=datetime.datetime(seconds=end/prompt_sr),content=i_tts_text)
+                                    end=datetime.timedelta(seconds=end/prompt_sr),content=i_tts_text)
             subs.append(i_sub)
             i_tts_audio = get_tts_wav(i_prompt_audio,i_prompt_text,self.wishper2gsv(from_language),i_tts_text,language)
-            i_tts_audio = i_tts_audio.numpy()
+            i_tts_audio = (i_tts_audio.numpy() * 32768).astype(np.int16)
+            if if_algin:
+                ratio = i_tts_audio.shape[-1] / (end-start)
+                i_tts_audio = [speed_change(i_tts_audio,speed=ratio,sr=prompt_sr) / 32768]
+                print(f"change speed {ratio}")
             tts_audio.append(i_tts_audio)
+            
 
         srt_path = os.path.join(output_dir,"tmp.srt")
         res_audio = torch.Tensor(np.concatenate(tts_audio, 0)).unsqueeze(0)
-        with open(srt_path,"w",encoding="utf8") as f:
+        with open(srt_path,"w",encoding="utf-8") as f:
             f.write(srt.compose(subs))
 
         res = {
