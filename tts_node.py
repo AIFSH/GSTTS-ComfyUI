@@ -1,7 +1,7 @@
 import os,sys
 from .ft_node import SoVITS_weight_root,GPT_weight_root,\
     pretrained_sovits_name,pretrained_gpt_name,work_path,\
-        now_dir,gsv_path,models_dir
+        now_dir,gsv_path,models_dir,output_dir
 
 sys.path.append(now_dir)
 sys.path.append(gsv_path)
@@ -311,10 +311,13 @@ def get_tts_wav(ref_wav,prompt_text, prompt_language, text, text_language, how_t
     t= []
     if len(prompt_text) == 0:
         ref_free = True
+    else:
+        ref_free = False
     t0 = ttime()
     prompt_language = dict_language[prompt_language]
     text_language = dict_language[text_language]
-
+    print(f"prompt_language:{prompt_language}")
+    print(f"text_language:{text_language}")
     if not ref_free:
         prompt_text = prompt_text.strip("\n")
         if (prompt_text[-1] not in splits): prompt_text += "。" if prompt_language != "en" else "."
@@ -336,7 +339,7 @@ def get_tts_wav(ref_wav,prompt_text, prompt_language, text, text_language, how_t
                 raise OSError(i18n("参考音频在3~10秒范围外，请更换！"))
             wav16k = torch.from_numpy(wav16k)
             '''
-            wav16k = ref_wav
+            wav16k = torchaudio.transforms.Resample(orig_freq=32000, new_freq=16000)(ref_wav)
             zero_wav_torch = torch.from_numpy(zero_wav)
             if is_half == True:
                 wav16k = wav16k.half().to(device)
@@ -697,11 +700,53 @@ class GSVTTSNode:
         }
         return (res,)
 
+import srt
+import datetime
 import traceback
-import translators as ts
+import folder_paths
 from tools.slicer2 import Slicer
 from faster_whisper import WhisperModel
 from huggingface_hub import snapshot_download
+input_dir = folder_paths.get_input_directory()
+class LoadSRT:
+    @classmethod
+    def INPUT_TYPES(s):
+        files = [f for f in os.listdir(input_dir) if os.path.isfile(os.path.join(input_dir, f)) and f.split('.')[-1] in ["srt", "txt"]]
+        return {"required":
+                    {"srt": (sorted(files),)},
+                }
+
+    CATEGORY = "AIFSH_CosyVoice"
+
+    RETURN_TYPES = ("SRT",)
+    FUNCTION = "load_srt"
+
+    def load_srt(self, srt):
+        srt_path = folder_paths.get_annotated_filepath(srt)
+        return (srt_path,)
+
+class PreViewSRT:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {"required":
+                    {"srt": ("SRT",)},
+                }
+
+    CATEGORY = "AIFSH_GPT-SoVITS"
+
+    RETURN_TYPES = ()
+    OUTPUT_NODE = True
+    
+    FUNCTION = "show_srt"
+
+    def show_srt(self, srt):
+        srt_name = os.path.basename(srt)
+        dir_name = os.path.dirname(srt)
+        dir_name = os.path.basename(dir_name)
+        with open(srt, 'r') as f:
+            srt_content = f.read()
+        return {"ui": {"srt":[srt_content,srt_name,dir_name]}}
+
 class TSCY_Node:
     def __init__(self):
         self.ifload_model = True
@@ -712,17 +757,50 @@ class TSCY_Node:
             "required":{
                 "language": (list(dict_language.keys()),),
                 "prompt_audio":("AUDIO",),
+                "translator":(['alibaba', 'apertium', 'argos', 'baidu', 'bing',
+                            'caiyun', 'cloudTranslation', 'deepl', 'elia', 'google',
+                            'hujiang', 'iciba', 'iflytek', 'iflyrec', 'itranslate',
+                            'judic', 'languageWire', 'lingvanex', 'mglip', 'mirai',
+                            'modernMt', 'myMemory', 'niutrans', 'papago', 'qqFanyi',
+                            'qqTranSmart', 'reverso', 'sogou', 'sysTran', 'tilde',
+                            'translateCom', 'translateMe', 'utibet', 'volcEngine', 'yandex',
+                            'yeekit', 'youdao'],{
+                                "default":"sogou"
+                            })
             },
             "optional":{
-                "srt": ("SRT",),
+                "tts_srt": ("SRT",),
             }
         }
-    RETURN_TYPES = ("AUDIO",)
+    RETURN_TYPES = ("AUDIO","SRT",)
     FUNCTION = "tts"
 
     CATEGORY = "AIFSH_GPT-SoVITS"
 
-    def tts(self,language,prompt_audio,srt=None):
+    def wishper2gsv(self,lang):
+        if lang in "en":
+            lang = i18n("英文")
+        elif lang in "ko":
+            lang = i18n("韩文")
+        elif lang in "ja":
+            lang = i18n("日文")
+        else:
+            lang = i18n("中文")
+        return lang
+    def gsv2translator(self,lang):
+        if "en" in lang:
+            lang = "en"
+        
+        elif "ja" in lang:
+            lang = "ja"
+
+        elif "ko" in lang:
+            lang = "ko"
+        else:
+            lang = "zh"
+        return lang
+
+    def tts(self,language,prompt_audio,translator,tts_srt=None):
         global ssl_model,is_half,tokenizer,bert_model
 
         waveform = prompt_audio['waveform'].squeeze(0)
@@ -754,68 +832,73 @@ class TSCY_Node:
             self.ifload_model = False
         else:
             print("use cache model")
-        if srt is None:
-            slicer = Slicer(
-                sr= prompt_sr,
-                threshold= -34,
-                min_length= 4000,
-                min_interval= 300,
-                hop_size= 10,
-                max_sil_kept= 500
-            )
-            model_path = os.path.join(models_dir,f"faster-whisper-large-v3")
-            snapshot_download(repo_id=f"Systran/faster-whisper-large-v3",local_dir=model_path)
-            try:
-                model = WhisperModel(model_path, device=device, compute_type="float16")
-            except:
-                return print(traceback.format_exc())
+        
+        slicer = Slicer(
+            sr= prompt_sr,
+            threshold= -34,
+            min_length= 4000,
+            min_interval= 300,
+            hop_size= 10,
+            max_sil_kept= 500
+        )
+        model_path = os.path.join(models_dir,f"faster-whisper-large-v3")
+        snapshot_download(repo_id=f"Systran/faster-whisper-large-v3",local_dir=model_path)
+        try:
+            model = WhisperModel(model_path, device=device, compute_type="float16")
+        except:
+            return print(traceback.format_exc())
 
-            tts_audio = []
-            to_language = dict_language[language]
-            if "yue" in to_language or "auto" in to_language or "zh" in to_language:
-                to_language = "zh"
-            if "en" in to_language:
-                to_language = "en"
+        tts_audio = []
+        to_language = self.gsv2translator(dict_language[language])
+        subs = []
+        for i, (chunk, start, end) in enumerate(slicer.slice(speech.numpy()[0])):
+            tmp_max = np.abs(chunk).max()
+            if(tmp_max>1):chunk/=tmp_max
+            chunk = (chunk / tmp_max * (0.9 * 0.25)) + (1 - 0.25) * chunk
+
+            segments, info = model.transcribe(
+                audio          = chunk,
+                beam_size      = 5,
+                vad_filter     = True,
+                vad_parameters = dict(min_silence_duration_ms=700),
+                language       = None)
+            i_prompt_text = ''
+            if i_prompt_text == '':
+                for segment in segments:
+                    i_prompt_text += segment.text
+            i_prompt_audio = torch.from_numpy(chunk)
             
-            if "ja" in to_language:
-                to_language = "ja"
+            from_language = info.language
+            
+            print(f"from {from_language} \t {i_prompt_text}")
+            if tts_srt is None:
+                import translators as ts
+                i_tts_text = ts.translate_text(query_text=i_prompt_text,from_language=from_language,
+                                            to_language=to_language,translator=translator)
+            else:
+                with open(tts_srt,"r") as f:
+                    sub_str = f.read()
+                i_tts_text = list(srt.parse(sub_str))[i].content
 
-            if "ko" in to_language:
-                to_language = "ko"
+            print(f"to {to_language}\t{i_tts_text}")
 
-            for chunk, start, end in slicer.slice(speech.numpy()[0]):
-                tmp_max = np.abs(chunk).max()
-                if(tmp_max>1):chunk/=tmp_max
-                chunk = (chunk / tmp_max * (0.9 * 0.25)) + (1 - 0.25) * chunk
+            i_sub = srt.Subtitle(index=i+1,start=datetime.timedelta(seconds=start/prompt_sr),
+                                    end=datetime.datetime(seconds=end/prompt_sr),content=i_tts_text)
+            subs.append(i_sub)
+            i_tts_audio = get_tts_wav(i_prompt_audio,i_prompt_text,self.wishper2gsv(from_language),i_tts_text,language)
+            i_tts_audio = i_tts_audio.numpy()
+            tts_audio.append(i_tts_audio)
 
-                segments, info = model.transcribe(
-                    audio          = chunk,
-                    beam_size      = 5,
-                    vad_filter     = True,
-                    vad_parameters = dict(min_silence_duration_ms=700),
-                    language       = None)
-                i_prompt_text = ''
-                if i_prompt_text == '':
-                    for segment in segments:
-                        i_prompt_text += segment.text
-                i_prompt_audio = torch.from_numpy(chunk)
-
-                
-                i_tts_text = ts.translate_text(query_text=i_prompt_text,from_language=info.language,
-                                            to_language=to_language)
-                print(f"from {info.language} \t {i_prompt_text}")
-                print(f"to {to_language}\t{i_tts_text}")
-
-                i_tts_audio = get_tts_wav(i_prompt_audio,i_prompt_text,info.language,i_tts_text,language)
-                i_tts_audio = i_tts_audio.numpy()
-                tts_audio.append(i_tts_audio)
-            res_audio = torch.Tensor(np.concatenate(tts_audio, 0)).unsqueeze(0)
+        srt_path = os.path.join(output_dir,"tmp.srt")
+        res_audio = torch.Tensor(np.concatenate(tts_audio, 0)).unsqueeze(0)
+        with open(srt_path,"w",encoding="utf8") as f:
+            f.write(srt.compose(subs))
 
         res = {
-            "waveform": res_audio.unsqueeze(0),
+            "waveform": res_audio,
             "sample_rate": prompt_sr,
         }
-        return (res,)
+        return (res,srt_path,)
             
 
 
