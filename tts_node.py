@@ -696,7 +696,7 @@ class GSVTTSNode:
                                 temperature,speed)
         res = {
             "waveform": res_audio.unsqueeze(0),
-            "sample_rate": 32000,
+            "sample_rate": prompt_sr,
         }
         return (res,)
 
@@ -782,7 +782,8 @@ class TSCY_Node:
     def INPUT_TYPES(s):
         return {
             "required":{
-                "language": (list(dict_language.keys()),),
+                "from_language":(list(dict_language.keys()),),
+                "to_language": (list(dict_language.keys()),),
                 "prompt_audio":("AUDIO",),
                 "translator":(['alibaba', 'apertium', 'argos', 'baidu', 'bing',
                             'caiyun', 'cloudTranslation', 'deepl', 'elia', 'google',
@@ -830,7 +831,7 @@ class TSCY_Node:
             lang = "zh"
         return lang
 
-    def tts(self,language,prompt_audio,translator,if_algin,tts_srt=None):
+    def tts(self,from_language,to_language,prompt_audio,translator,if_algin,tts_srt=None):
         global ssl_model,is_half,tokenizer,bert_model
 
         waveform = prompt_audio['waveform'].squeeze(0)
@@ -879,7 +880,8 @@ class TSCY_Node:
             return print(traceback.format_exc())
 
         tts_audio = []
-        to_language = self.gsv2translator(dict_language[language])
+        tr_to_language = self.gsv2translator(dict_language[to_language])
+        whisper_language = self.gsv2translator(dict_language[from_language])
         subs = []
         for i, (chunk, start, end) in enumerate(slicer.slice(speech.numpy()[0])):
             tmp_max = np.abs(chunk).max()
@@ -891,31 +893,29 @@ class TSCY_Node:
                 beam_size      = 5,
                 vad_filter     = True,
                 vad_parameters = dict(min_silence_duration_ms=700),
-                language       = None)
+                language       = whisper_language)
             i_prompt_text = ''
             if i_prompt_text == '':
                 for segment in segments:
                     i_prompt_text += segment.text
             i_prompt_audio = torch.from_numpy(chunk)
             
-            from_language = info.language
-            
-            print(f"from {from_language} \t {i_prompt_text}")
+            print(f"from {whisper_language} \t {i_prompt_text}")
             if tts_srt is None:
                 import translators as ts
-                i_tts_text = ts.translate_text(query_text=i_prompt_text,from_language=from_language,
-                                            to_language=to_language,translator=translator)
+                i_tts_text = ts.translate_text(query_text=i_prompt_text,from_language=whisper_language,
+                                            to_language=tr_to_language,translator=translator)
             else:
                 with open(tts_srt,"r",encoding="utf-8") as f:
                     sub_str = f.read()
                 i_tts_text = list(srt.parse(sub_str))[i].content
 
-            print(f"to {to_language}\t{i_tts_text}")
+            print(f"to {tr_to_language}\t{i_tts_text}")
 
             i_sub = srt.Subtitle(index=i+1,start=datetime.timedelta(seconds=start/prompt_sr),
                                     end=datetime.timedelta(seconds=end/prompt_sr),content=i_tts_text)
             subs.append(i_sub)
-            i_tts_audio = get_tts_wav(i_prompt_audio,i_prompt_text,self.wishper2gsv(from_language),i_tts_text,language)
+            i_tts_audio = get_tts_wav(i_prompt_audio,i_prompt_text,from_language,i_tts_text,to_language)
             i_tts_audio = (i_tts_audio.numpy() * 32768).astype(np.int16)
             if if_algin:
                 ratio = i_tts_audio.shape[-1] / (end-start)
